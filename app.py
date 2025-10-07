@@ -4,9 +4,9 @@ import numpy as np
 import os
 import plotly.graph_objects as go
 import time
-import pandas as pd
 
 # --- KODE UNTUK MENGUBAH TAMPILAN (BACKGROUND & FONT) ---
+# Versi ini menggunakan selector yang lebih kuat untuk memastikan gaya diterapkan.
 st.markdown("""
 <style>
 /* Target elemen utama tempat aplikasi Streamlit dirender */
@@ -50,33 +50,29 @@ div[data-testid="stFileUploaderFileName"] { color: #FFFFFF !important; }
     background-color: #0056b3;
 }
 
-/* Styling untuk Expander/Dropdown */
+/* 🎨 [BARU] Styling untuk Expander/Dropdown yang lebih baik */
 [data-testid="stExpander"] {
-    background-color: rgba(0, 0, 0, 0.2);
-    border: none !important;
+    background-color: rgba(0, 0, 0, 0.2); /* Menyamakan bg dengan kolom */
+    border: none !important; /* Menghilangkan border default */
     box-shadow: none !important;
-    border-radius: 10px;
-    margin-bottom: 1rem;
+    border-radius: 10px; /* Membuat sudut lebih tumpul */
 }
 
 [data-testid="stExpander"] summary {
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 1rem;
     border-radius: 10px;
-    transition: background-color 0.3s ease;
-}
-
-[data-testid="stExpander"] summary:hover {
-    background-color: rgba(43, 89, 148, 0.5) !important;
+    /* Aturan hover dihilangkan agar warna tidak berubah */
 }
 
 [data-testid="stExpander"] summary p {
-    color: #FFFFFF !important;
+    color: #FFFFFF !important; /* Memastikan teks header selalu putih */
     font-weight: 600;
 }
 
 [data-testid="stExpander"] svg {
-    color: #FFFFFF !important;
+    color: #FFFFFF !important; /* Membuat ikon panah menjadi putih */
 }
+/* --- Akhir Styling Expander --- */
 
 /* Menghilangkan background header utama */
 [data-testid="stHeader"] {
@@ -89,7 +85,7 @@ div[data-testid="stFileUploaderFileName"] { color: #FFFFFF !important; }
 # --- Konfigurasi Halaman ---
 st.set_page_config(
     page_title="Analisis Similaritas Citra",
-    page_icon="",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -113,7 +109,7 @@ def calculate_signature(binary_image):
     cx = int(M["m10"] / M["m00"])
     cy = int(M["m01"] / M["m00"])
     centroid = (cx, cy)
-    distances = [np.sqrt((p[0][0] - cx)*2 + (p[0][1] - cy)*2) for p in main_contour]
+    distances = [np.sqrt((p[0][0] - cx)**2 + (p[0][1] - cy)**2) for p in main_contour]
     angles = [np.arctan2(p[0][1] - cy, p[0][0] - cx) for p in main_contour]
     sorted_indices = np.argsort(angles)
     sorted_distances = np.array(distances)[sorted_indices]
@@ -156,9 +152,10 @@ def classify_image(test_signature, ref_signatures):
 
 # --- Tampilan Utama Aplikasi (UI) dengan Layout 3 Seksi ---
 
+# Mendefinisikan 3 kolom utama untuk layout
 col_left, col_center, col_right = st.columns([1.2, 2, 1.2])
 
-# --- Seksi Kiri (Kontrol) ---
+# --- Seksi Kanan (Kontrol) ---
 with col_left:
     st.header("Panel Kontrol")
     st.markdown("---")
@@ -166,11 +163,12 @@ with col_left:
     ref_signatures = load_reference_signatures("reference_images")
     
     if not ref_signatures:
-        st.error("Folder reference_images tidak ditemukan atau kosong.")
+        st.error("Folder `reference_images` tidak ditemukan atau kosong.")
     else:
         st.success(f"{len(ref_signatures)} kelas referensi berhasil dimuat.")
         with st.expander("Lihat Kelas Referensi"):
-            st.table(pd.DataFrame(ref_signatures.keys(), columns=["Nama Kelas"]))
+            # Menampilkan daftar kelas referensi dalam sebuah tabel sederhana
+            st.table(ref_signatures.keys())
 
     st.markdown("---")
     uploaded_file = st.file_uploader(
@@ -183,14 +181,16 @@ with col_left:
 with col_center:
     st.title("Analisis Similaritas Citra Digital")
     
+    # Inisialisasi variabel di awal untuk menghindari NameError
     test_signature = None
     binary_image = None
 
     if uploaded_file is None:
-        st.info("Selamat Datang! Silakan unggah sebuah gambar pada Panel Kontrol di sebelah kiri untuk memulai analisis.")
+        st.info("Selamat Datang! Silakan unggah sebuah gambar pada Panel Kontrol di sebelah kanan untuk memulai analisis.")
     else:
         st.header("Input & Hasil Segmentasi")
         
+        # Proses gambar
         file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
         test_image = cv2.imdecode(file_bytes, 1)
         
@@ -198,6 +198,7 @@ with col_center:
             time.sleep(1)
             binary_image, test_signature, centroid = process_image_fully(test_image)
         
+        # Tampilkan perbandingan gambar
         sub_col_1, sub_col_2 = st.columns(2)
         with sub_col_1:
             st.image(test_image, channels="BGR", caption="Citra Asli", use_column_width=True)
@@ -205,18 +206,19 @@ with col_center:
         if binary_image is not None and test_signature is not None:
             with sub_col_2:
                 binary_with_centroid = cv2.cvtColor(binary_image, cv2.COLOR_GRAY2BGR)
-                if centroid:
-                    cv2.circle(binary_with_centroid, centroid, 10, (0, 0, 255), -1)
+                cv2.circle(binary_with_centroid, centroid, 10, (0, 0, 255), -1)
                 st.image(binary_with_centroid, caption="Citra Hasil Segmentasi", use_column_width=True)
         else:
             st.error("Gagal mendeteksi objek pada gambar. Coba gunakan gambar lain.")
 
-# --- Seksi Kanan (Hasil Analisis) ---
+# --- Seksi Kiri (Hasil Analisis) ---
 with col_right:
     st.header("Hasil Analisis")
     st.markdown("---")
     
+    # Hanya tampilkan hasil jika gambar sudah diunggah dan diproses
     if test_signature is not None:
+        # Klasifikasi
         best_match, min_dist, all_distances = classify_image(test_signature, ref_signatures)
         
         st.subheader("Klasifikasi Objek")
@@ -224,6 +226,7 @@ with col_right:
         st.metric(label="Nilai Minimum Distance", value=f"{min_dist:.4f}", help="Semakin kecil nilainya, semakin mirip objeknya.")
 
         st.subheader("Plot Signature")
+        # Membuat plot signature dengan Plotly
         fig = go.Figure()
         fig.add_trace(go.Scatter(y=test_signature, mode='lines', name='Signature Citra Uji', line=dict(color='#007bff')))
         fig.update_layout(
@@ -242,61 +245,7 @@ with col_right:
         st.markdown("---")
 
         with st.expander("Lihat Rincian Perbandingan Distance"):
-            distance_df = pd.DataFrame(all_distances.items(), columns=["Objek Referensi", "Distance"])
-            distance_df["Distance"] = distance_df["Distance"].map('{:.4f}'.format)
-            st.dataframe(distance_df, use_container_width=True, hide_index=True)
-
-        with st.expander("Nilai Distance Berdasarkan Sudut Theta Citra Biner"):
-            num_blocks = 8
-            rows_per_block = 360 // num_blocks
-            p_values = np.arange(1, 361)
-
-            # --- ✅ [PERBAIKAN BAGIAN 1] ---
-            # Membuat DataFrame untuk diunduh (dengan kolom duplikat, tidak masalah untuk CSV)
-            df_chunks_for_csv = []
-            for i in range(num_blocks):
-                start = i * rows_per_block
-                end = start + rows_per_block
-                dist_values_formatted = [f"{val:.5f}" for val in test_signature[start:end]]
-                chunk_df = pd.DataFrame({
-                    'P': p_values[start:end],
-                    'Dist': dist_values_formatted
-                }).reset_index(drop=True)
-                df_chunks_for_csv.append(chunk_df)
-            
-            download_df = pd.concat(df_chunks_for_csv, axis=1)
-            csv_data = download_df.to_csv(index=False).encode('utf-8')
-            
-            st.download_button(
-               label="Unduh Data sebagai CSV",
-               data=csv_data,
-               file_name='nilai_distance_berdasarkan_theta.csv',
-               mime='text/csv',
-               help="Unduh data dalam format tabel multi-kolom."
-            )
-            st.markdown("---")
-
-            # --- ✅ [PERBAIKAN BAGIAN 2] ---
-            # Membuat TAMPILAN di aplikasi menggunakan st.columns untuk menghindari error
-            # st.write("Pratinjau Data:") # Header opsional
-            cols = st.columns(num_blocks)
-            for i in range(num_blocks):
-                with cols[i]:
-                    start = i * rows_per_block
-                    end = start + rows_per_block
-                    
-                    # Buat DataFrame kecil & terpisah untuk setiap kolom
-                    display_chunk_df = pd.DataFrame({
-                        'P': p_values[start:end],
-                        'Dist': [f"{val:.5f}" for val in test_signature[start:end]]
-                    })
-                    
-                    st.dataframe(
-                        display_chunk_df,
-                        hide_index=True,
-                        use_container_width=True
-                    )
-            # --- Akhir Perbaikan ---
-            
+            distance_data = [{"Objek Referensi": name, "Distance": f"{dist:.4f}"} for name, dist in all_distances.items()]
+            st.dataframe(distance_data, use_container_width=True)
     else:
-        st.info("Hasil analisis akan ditampilkan di sini setelah gambar diunggah dan diproses.")
+        st.info("Hasil analisis akan ditampilkan di sini setelah gambar diunggah dan diproses.")
