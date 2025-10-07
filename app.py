@@ -193,6 +193,17 @@ with col_center:
         # Proses gambar
         file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
         test_image = cv2.imdecode(file_bytes, 1)
+
+        if test_image is not None:
+            # Jika gambar berhasil dimuat, baru proses
+            binary_image, test_signature, centroid = process_image_fully(test_image)
+    
+            # Pindahkan juga semua kode yang menampilkan hasil ke dalam 'if' ini
+            # Contoh: st.image(...), st.metric(...), dll.
+    
+        else:
+            # Jika gambar gagal dimuat, tampilkan pesan error
+            st.error("Gagal memuat gambar. File mungkin korup atau format tidak didukung. Coba gambar lain.")
         
         with st.spinner('Menganalisis gambar...'):
             time.sleep(1)
