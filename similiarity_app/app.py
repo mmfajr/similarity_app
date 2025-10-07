@@ -160,7 +160,7 @@ with col_left:
     st.header("Panel Kontrol")
     st.markdown("---")
     
-    ref_signatures = load_reference_signatures("similiarity_app/reference_images")
+    ref_signatures = load_reference_signatures("reference_images")
     
     if not ref_signatures:
         st.error("Folder `reference_images` tidak ditemukan atau kosong.")
